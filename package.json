@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/jcarrascoa7/git-blame-ts-demo#readme",
   "devDependencies": {
+    "@types/node": "^20.8.10",
     "typescript": "^5.2.2"
   }
 }
