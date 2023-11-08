@@ -41,6 +41,7 @@ var child_process_1 = require("child_process");
 var fs = require("fs");
 var repoPath = "/mnt/c/Users/carra/Desktop/PUC/Magister/EVILAB/Repositorios/2021-2-S3-Grupo3-Backend";
 var execAsync = (0, util_1.promisify)(child_process_1.exec);
+var writeFileAsync = (0, util_1.promisify)(fs.writeFile);
 function hours(dates, maxCommitDiffInSec, firstCommitAdditionInMinutes) {
     if (maxCommitDiffInSec === void 0) { maxCommitDiffInSec = 120 * 60; }
     if (firstCommitAdditionInMinutes === void 0) { firstCommitAdditionInMinutes = 120; }
@@ -54,57 +55,51 @@ function hours(dates, maxCommitDiffInSec, firstCommitAdditionInMinutes) {
 }
 function getAuthStats(repoPath) {
     return __awaiter(this, void 0, void 0, function () {
-        var gitCmd, authStats, logData, logEntries, currentAuthor, currentStringTimestamp, currentTimestamp, commitCount, _i, logEntries_1, entry, authorTimestampSplit, statsSplit, insertions, deletions, filename, loc, writeFileAsync, err_1;
+        var gitCmd, authStats, authorTimestampList, logData, logEntries, currentAuthor, currentStringTimestamp, currentTimestamp, _i, logEntries_1, entry, authorTimestampSplit, statsSplit, insertions, deletions, filename, loc, err_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     gitCmd = "git -C ".concat(repoPath);
                     authStats = {};
+                    authorTimestampList = [];
                     return [4 /*yield*/, execAsync("".concat(gitCmd, " log --format=\"%aN|%ct\" --numstat"))];
                 case 1:
                     logData = (_a.sent()).stdout;
-                    console.log("logData", logData);
                     logEntries = logData.split("\n");
                     currentAuthor = "";
                     currentStringTimestamp = "";
                     currentTimestamp = 0;
-                    commitCount = 0;
+                    //let commitCount = 0;
                     for (_i = 0, logEntries_1 = logEntries; _i < logEntries_1.length; _i++) {
                         entry = logEntries_1[_i];
                         authorTimestampSplit = entry.split("|");
                         if (authorTimestampSplit.length === 2) {
-                            commitCount++;
+                            authorTimestampList.push("".concat(currentAuthor, "|").concat(currentStringTimestamp));
+                            //commitCount++;
                             currentAuthor = authorTimestampSplit[0], currentStringTimestamp = authorTimestampSplit[1];
                             currentTimestamp = parseInt(currentStringTimestamp, 10);
-                            continue;
-                        }
-                        statsSplit = entry.split("\t");
-                        if (statsSplit.length === 3) {
-                            insertions = statsSplit[0], deletions = statsSplit[1], filename = statsSplit[2];
-                            if (!filename)
-                                continue; // Si no hay un nombre de archivo, no procesamos esta línea
-                            loc = parseInt(insertions, 10) + parseInt(deletions, 10);
                             if (!authStats[currentAuthor]) {
                                 authStats[currentAuthor] = {
-                                    loc: loc,
-                                    files: new Set([filename.trim()]),
+                                    loc: 0,
+                                    files: new Set(),
                                     commits: 1,
                                     ctimes: [currentTimestamp],
                                 };
                             }
                             else {
-                                authStats[currentAuthor].loc += loc;
-                                authStats[currentAuthor].files.add(filename.trim());
                                 authStats[currentAuthor].commits++;
                                 authStats[currentAuthor].ctimes.push(currentTimestamp);
                             }
+                            continue;
+                        }
+                        statsSplit = entry.split("\t");
+                        if (statsSplit.length === 3) {
+                            insertions = statsSplit[0], deletions = statsSplit[1], filename = statsSplit[2];
+                            loc = parseInt(insertions, 10) + parseInt(deletions, 10);
+                            authStats[currentAuthor].loc += loc;
+                            authStats[currentAuthor].files.add(filename.trim());
                         }
                     }
-                    Object.keys(authStats).forEach(function (author) {
-                        console.log(author);
-                    });
-                    console.log("Total commits processed: ".concat(commitCount));
-                    writeFileAsync = (0, util_1.promisify)(fs.writeFile);
                     _a.label = 2;
                 case 2:
                     _a.trys.push([2, 4, , 5]);

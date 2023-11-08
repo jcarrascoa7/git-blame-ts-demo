@@ -13,6 +13,7 @@ const repoPath =
   "/mnt/c/Users/carra/Desktop/PUC/Magister/EVILAB/Repositorios/2021-2-S3-Grupo3-Backend";
 
 const execAsync = promisify(exec);
+const writeFileAsync = promisify(fs.writeFile);
 
 function hours(
   dates: number[],
@@ -35,11 +36,11 @@ async function getAuthStats(repoPath: string): Promise<void> {
   const gitCmd = `git -C ${repoPath}`;
   const authStats: { [author: string]: AuthorStats } = {};
 
+  const authorTimestampList: string[] = [];
+
   const { stdout: logData } = await execAsync(
     `${gitCmd} log --format="%aN|%ct" --numstat`
   );
-
-  console.log("logData", logData);
 
   const logEntries = logData.split("\n");
 
@@ -47,47 +48,36 @@ async function getAuthStats(repoPath: string): Promise<void> {
   let currentStringTimestamp = "";
   let currentTimestamp = 0;
 
-  let commitCount = 0;
-
   for (const entry of logEntries) {
     const authorTimestampSplit = entry.split("|");
 
     if (authorTimestampSplit.length === 2) {
-      commitCount++;
+      authorTimestampList.push(`${currentAuthor}|${currentStringTimestamp}`);
       [currentAuthor, currentStringTimestamp] = authorTimestampSplit;
       currentTimestamp = parseInt(currentStringTimestamp, 10);
+      if (!authStats[currentAuthor]) {
+        authStats[currentAuthor] = {
+          loc: 0,
+          files: new Set(),
+          commits: 1,
+          ctimes: [currentTimestamp],
+        };
+      } else {
+        authStats[currentAuthor].commits++;
+        authStats[currentAuthor].ctimes.push(currentTimestamp);
+      }
       continue;
     }
 
     const statsSplit = entry.split("\t");
     if (statsSplit.length === 3) {
       const [insertions, deletions, filename] = statsSplit;
-      if (!filename) continue; // Si no hay un nombre de archivo, no procesamos esta línea
 
       const loc = parseInt(insertions, 10) + parseInt(deletions, 10);
-      if (!authStats[currentAuthor]) {
-        authStats[currentAuthor] = {
-          loc: loc,
-          files: new Set([filename.trim()]),
-          commits: 1,
-          ctimes: [currentTimestamp],
-        };
-      } else {
-        authStats[currentAuthor].loc += loc;
-        authStats[currentAuthor].files.add(filename.trim());
-        authStats[currentAuthor].commits++;
-        authStats[currentAuthor].ctimes.push(currentTimestamp);
-      }
+      authStats[currentAuthor].loc += loc;
+      authStats[currentAuthor].files.add(filename.trim());
     }
   }
-
-  Object.keys(authStats).forEach((author) => {
-    console.log(author);
-  });
-
-  console.log(`Total commits processed: ${commitCount}`);
-
-  const writeFileAsync = promisify(fs.writeFile);
 
   try {
     await writeFileAsync("output.json", JSON.stringify(authStats, null, 2));
