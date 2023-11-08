@@ -1,5 +1,6 @@
 import { promisify } from "util";
 import { exec } from "child_process";
+import * as fs from "fs";
 
 interface AuthorStats {
   loc: number;
@@ -12,17 +13,6 @@ const repoPath =
   "/mnt/c/Users/carra/Desktop/PUC/Magister/EVILAB/Repositorios/2021-2-S3-Grupo3-Backend";
 
 const execAsync = promisify(exec);
-
-const RE_AUTHS_BLAME = new RegExp("^author (.+)$", "mg");
-const RE_NCOM_AUTH_EM = new RegExp("^\\s*(\\d+)\\s+(.*?)\\s+<(.*)>\\s*$", "mg");
-const RE_BLAME_BOUNDS = new RegExp(
-  "^\\w+\\s+\\d+\\s+\\d+(\\s+\\d+)?\\s*$[^\\t]*?^boundary\\s*$[^\\t]*?^\\t.*?$",
-  "mg"
-);
-const RE_AUTHS_LOG = new RegExp("^aN(.+?) ct(\\d+)$", "mg");
-const RE_STAT_BINARY = new RegExp("^\\s*-\\s*-.*?$", "mg");
-const RE_RENAME = new RegExp("\\{.+? => (.+?)\\}", "mg");
-const RE_CSPILT = new RegExp("(?<!\\\\),", "g");
 
 function hours(
   dates: number[],
@@ -41,9 +31,7 @@ function hours(
   return (res / 60 + firstCommitAdditionInMinutes) / 60;
 }
 
-async function getAuthStats(
-  repoPath: string
-): Promise<{ [author: string]: AuthorStats }> {
+async function getAuthStats(repoPath: string): Promise<void> {
   const gitCmd = `git -C ${repoPath}`;
   const authStats: { [author: string]: AuthorStats } = {};
 
@@ -88,12 +76,19 @@ async function getAuthStats(
     }
   }
 
-  return authStats;
+  const writeFileAsync = promisify(fs.writeFile);
+
+  try {
+    await writeFileAsync("output.json", JSON.stringify(authStats, null, 2));
+    console.log("Estadísticas escritas en 'output.json'.");
+  } catch (err) {
+    console.error("Error al escribir el archivo:", err);
+  }
 }
 
 getAuthStats(repoPath)
-  .then((stats) => {
-    console.log(stats);
+  .then(() => {
+    console.log("Proceso completado.");
   })
   .catch((error) => {
     console.error("Error al obtener estadísticas de autoría:", error);
