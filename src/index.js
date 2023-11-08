@@ -38,32 +38,56 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var util_1 = require("util");
 var child_process_1 = require("child_process");
-var fs_1 = require("fs");
+var repoPath = "/tu/ruta/al/repositorio";
 var execAsync = (0, util_1.promisify)(child_process_1.exec);
-var writeFileAsync = (0, util_1.promisify)(fs_1.writeFile);
-function runGitCommands(repoPath) {
+var RE_AUTHS_LOG = new RegExp("^(.+)\\|(\\d+)\\n([\\s\\S]+?)(?=^\\S|$)", "gm");
+var RE_STAT = new RegExp("^(\\d+)\\t(\\d+)\\t(.+)$", "gm");
+function getAuthStats(repoPath) {
     return __awaiter(this, void 0, void 0, function () {
-        var shortlogOutput, error_1;
+        var gitCmd, authStats, logData, match, author, timestamp, statsBlock, statMatch, insertions, deletions, filename, loc;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, execAsync("git shortlog -s -e HEAD", {
-                            cwd: repoPath,
-                        })];
+                    gitCmd = "git -C ".concat(repoPath);
+                    authStats = {};
+                    return [4 /*yield*/, execAsync("".concat(gitCmd, " log --format=\"%aN|%ct\" --numstat"))];
                 case 1:
-                    shortlogOutput = (_a.sent()).stdout;
-                    console.log(shortlogOutput);
-                    return [3 /*break*/, 3];
-                case 2:
-                    error_1 = _a.sent();
-                    console.error("Error running git commands:", error_1);
-                    return [3 /*break*/, 3];
-                case 3: return [2 /*return*/];
+                    logData = (_a.sent()).stdout;
+                    while ((match = RE_AUTHS_LOG.exec(logData)) !== null) {
+                        author = match[1];
+                        timestamp = parseInt(match[2], 10);
+                        statsBlock = match[3];
+                        statMatch = void 0;
+                        while ((statMatch = RE_STAT.exec(statsBlock)) !== null) {
+                            insertions = parseInt(statMatch[1], 10);
+                            deletions = parseInt(statMatch[2], 10);
+                            filename = statMatch[3];
+                            loc = insertions + deletions;
+                            if (!authStats[author]) {
+                                authStats[author] = {
+                                    loc: loc,
+                                    files: new Set([filename]),
+                                    commits: 1,
+                                    ctimes: [timestamp],
+                                };
+                            }
+                            else {
+                                authStats[author].loc += loc;
+                                authStats[author].files.add(filename);
+                                authStats[author].commits++;
+                                authStats[author].ctimes.push(timestamp);
+                            }
+                        }
+                    }
+                    return [2 /*return*/, authStats];
             }
         });
     });
 }
-// Replace with your actual repository path
-var repoPath = "/mnt/c/Users/carra/Desktop/PUC/Magister/EVILAB/Repositorios/2021-2-S3-Grupo3-Backend";
-runGitCommands(repoPath);
+getAuthStats(repoPath)
+    .then(function (stats) {
+    console.log(stats);
+})
+    .catch(function (error) {
+    console.error("Error al obtener estadísticas de autoría:", error);
+});
