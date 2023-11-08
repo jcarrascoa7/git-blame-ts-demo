@@ -54,7 +54,7 @@ function hours(dates, maxCommitDiffInSec, firstCommitAdditionInMinutes) {
 }
 function getAuthStats(repoPath) {
     return __awaiter(this, void 0, void 0, function () {
-        var gitCmd, authStats, logData, logEntries, currentAuthor, currentStringTimestamp, currentTimestamp, _i, logEntries_1, entry, authorTimestampSplit, statsSplit, insertions, deletions, filename, loc, writeFileAsync, err_1;
+        var gitCmd, authStats, logData, logEntries, currentAuthor, currentStringTimestamp, currentTimestamp, commitCount, _i, logEntries_1, entry, authorTimestampSplit, statsSplit, insertions, deletions, filename, loc, writeFileAsync, err_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -63,14 +63,17 @@ function getAuthStats(repoPath) {
                     return [4 /*yield*/, execAsync("".concat(gitCmd, " log --format=\"%aN|%ct\" --numstat"))];
                 case 1:
                     logData = (_a.sent()).stdout;
+                    console.log("logData", logData);
                     logEntries = logData.split("\n");
                     currentAuthor = "";
                     currentStringTimestamp = "";
                     currentTimestamp = 0;
+                    commitCount = 0;
                     for (_i = 0, logEntries_1 = logEntries; _i < logEntries_1.length; _i++) {
                         entry = logEntries_1[_i];
                         authorTimestampSplit = entry.split("|");
                         if (authorTimestampSplit.length === 2) {
+                            commitCount++;
                             currentAuthor = authorTimestampSplit[0], currentStringTimestamp = authorTimestampSplit[1];
                             currentTimestamp = parseInt(currentStringTimestamp, 10);
                             continue;
@@ -97,6 +100,10 @@ function getAuthStats(repoPath) {
                             }
                         }
                     }
+                    Object.keys(authStats).forEach(function (author) {
+                        console.log(author);
+                    });
+                    console.log("Total commits processed: ".concat(commitCount));
                     writeFileAsync = (0, util_1.promisify)(fs.writeFile);
                     _a.label = 2;
                 case 2:

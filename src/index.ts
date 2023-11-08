@@ -39,16 +39,21 @@ async function getAuthStats(repoPath: string): Promise<void> {
     `${gitCmd} log --format="%aN|%ct" --numstat`
   );
 
+  console.log("logData", logData);
+
   const logEntries = logData.split("\n");
 
   let currentAuthor = "";
   let currentStringTimestamp = "";
   let currentTimestamp = 0;
 
+  let commitCount = 0;
+
   for (const entry of logEntries) {
     const authorTimestampSplit = entry.split("|");
 
     if (authorTimestampSplit.length === 2) {
+      commitCount++;
       [currentAuthor, currentStringTimestamp] = authorTimestampSplit;
       currentTimestamp = parseInt(currentStringTimestamp, 10);
       continue;
@@ -75,6 +80,12 @@ async function getAuthStats(repoPath: string): Promise<void> {
       }
     }
   }
+
+  Object.keys(authStats).forEach((author) => {
+    console.log(author);
+  });
+
+  console.log(`Total commits processed: ${commitCount}`);
 
   const writeFileAsync = promisify(fs.writeFile);
 
