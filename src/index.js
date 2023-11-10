@@ -69,35 +69,35 @@ function getAuthStats(repoPath) {
                     currentAuthor = "";
                     currentStringTimestamp = "";
                     currentTimestamp = 0;
-                    //let commitCount = 0;
                     for (_i = 0, logEntries_1 = logEntries; _i < logEntries_1.length; _i++) {
                         entry = logEntries_1[_i];
                         authorTimestampSplit = entry.split("|");
                         if (authorTimestampSplit.length === 2) {
                             authorTimestampList.push("".concat(currentAuthor, "|").concat(currentStringTimestamp));
-                            //commitCount++;
                             currentAuthor = authorTimestampSplit[0], currentStringTimestamp = authorTimestampSplit[1];
                             currentTimestamp = parseInt(currentStringTimestamp, 10);
                             if (!authStats[currentAuthor]) {
                                 authStats[currentAuthor] = {
                                     loc: 0,
-                                    files: new Set(),
+                                    files: 0,
                                     commits: 1,
-                                    ctimes: [currentTimestamp],
+                                    ctimes: 1,
                                 };
                             }
                             else {
                                 authStats[currentAuthor].commits++;
-                                authStats[currentAuthor].ctimes.push(currentTimestamp);
+                                authStats[currentAuthor].ctimes++;
                             }
-                            continue;
                         }
                         statsSplit = entry.split("\t");
                         if (statsSplit.length === 3) {
                             insertions = statsSplit[0], deletions = statsSplit[1], filename = statsSplit[2];
-                            loc = parseInt(insertions, 10) + parseInt(deletions, 10);
+                            loc = 0;
+                            if (insertions !== "-" && deletions !== "-") {
+                                loc = parseInt(insertions, 10) + parseInt(deletions, 10);
+                            }
                             authStats[currentAuthor].loc += loc;
-                            authStats[currentAuthor].files.add(filename.trim());
+                            authStats[currentAuthor].files++;
                         }
                     }
                     _a.label = 2;

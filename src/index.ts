@@ -4,9 +4,9 @@ import * as fs from "fs";
 
 interface AuthorStats {
   loc: number;
-  files: Set<string>;
+  files: number;
   commits: number;
-  ctimes: number[];
+  ctimes: number;
 }
 
 const repoPath =
@@ -58,24 +58,26 @@ async function getAuthStats(repoPath: string): Promise<void> {
       if (!authStats[currentAuthor]) {
         authStats[currentAuthor] = {
           loc: 0,
-          files: new Set(),
+          files: 0,
           commits: 1,
-          ctimes: [currentTimestamp],
+          ctimes: 1,
         };
       } else {
         authStats[currentAuthor].commits++;
-        authStats[currentAuthor].ctimes.push(currentTimestamp);
+        authStats[currentAuthor].ctimes++;
       }
-      continue;
     }
 
     const statsSplit = entry.split("\t");
     if (statsSplit.length === 3) {
       const [insertions, deletions, filename] = statsSplit;
 
-      const loc = parseInt(insertions, 10) + parseInt(deletions, 10);
+      let loc = 0;
+      if (insertions !== "-" && deletions !== "-") {
+        loc = parseInt(insertions, 10) + parseInt(deletions, 10);
+      }
       authStats[currentAuthor].loc += loc;
-      authStats[currentAuthor].files.add(filename.trim());
+      authStats[currentAuthor].files++;
     }
   }
 
