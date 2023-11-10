@@ -46,7 +46,6 @@ async function getAuthStats(repoPath: string): Promise<void> {
 
   let currentAuthor = "";
   let currentStringTimestamp = "";
-  let currentTimestamp = 0;
 
   for (const entry of logEntries) {
     const authorTimestampSplit = entry.split("|");
@@ -54,7 +53,6 @@ async function getAuthStats(repoPath: string): Promise<void> {
     if (authorTimestampSplit.length === 2) {
       authorTimestampList.push(`${currentAuthor}|${currentStringTimestamp}`);
       [currentAuthor, currentStringTimestamp] = authorTimestampSplit;
-      currentTimestamp = parseInt(currentStringTimestamp, 10);
       if (!authStats[currentAuthor]) {
         authStats[currentAuthor] = {
           loc: 0,
@@ -81,8 +79,37 @@ async function getAuthStats(repoPath: string): Promise<void> {
     }
   }
 
+  let totalCommits = 0;
+  let totalCtimes = 0;
+  let totalFiles = 0;
+  let totalLoc = 0;
+
+  const authorsArray = [];
+
+  for (const [author, stats] of Object.entries(authStats)) {
+    totalCommits += stats.commits;
+    totalCtimes += stats.ctimes;
+    totalFiles += stats.files;
+    totalLoc += stats.loc;
+
+    authorsArray.push({
+      name: author,
+      loc: stats.loc,
+      coms: stats.commits,
+      fils: stats.files,
+    });
+  }
+
+  const finalOutput = {
+    totalCommits,
+    totalCtimes,
+    totalFiles,
+    totalLoc,
+    Authors: authorsArray,
+  };
+
   try {
-    await writeFileAsync("output.json", JSON.stringify(authStats, null, 2));
+    await writeFileAsync("output.json", JSON.stringify(finalOutput, null, 2));
     console.log("Estadísticas escritas en 'output.json'.");
   } catch (err) {
     console.error("Error al escribir el archivo:", err);

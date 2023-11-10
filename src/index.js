@@ -55,27 +55,25 @@ function hours(dates, maxCommitDiffInSec, firstCommitAdditionInMinutes) {
 }
 function getAuthStats(repoPath) {
     return __awaiter(this, void 0, void 0, function () {
-        var gitCmd, authStats, authorTimestampList, logData, logEntries, currentAuthor, currentStringTimestamp, currentTimestamp, _i, logEntries_1, entry, authorTimestampSplit, statsSplit, insertions, deletions, filename, loc, err_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var gitCmd, authStats, authorTimestampList, logData, logEntries, currentAuthor, currentStringTimestamp, _i, logEntries_1, entry, authorTimestampSplit, statsSplit, insertions, deletions, filename, loc, totalCommits, totalCtimes, totalFiles, totalLoc, authorsArray, _a, _b, _c, author, stats, finalOutput, err_1;
+        return __generator(this, function (_d) {
+            switch (_d.label) {
                 case 0:
                     gitCmd = "git -C ".concat(repoPath);
                     authStats = {};
                     authorTimestampList = [];
                     return [4 /*yield*/, execAsync("".concat(gitCmd, " log --format=\"%aN|%ct\" --numstat"))];
                 case 1:
-                    logData = (_a.sent()).stdout;
+                    logData = (_d.sent()).stdout;
                     logEntries = logData.split("\n");
                     currentAuthor = "";
                     currentStringTimestamp = "";
-                    currentTimestamp = 0;
                     for (_i = 0, logEntries_1 = logEntries; _i < logEntries_1.length; _i++) {
                         entry = logEntries_1[_i];
                         authorTimestampSplit = entry.split("|");
                         if (authorTimestampSplit.length === 2) {
                             authorTimestampList.push("".concat(currentAuthor, "|").concat(currentStringTimestamp));
                             currentAuthor = authorTimestampSplit[0], currentStringTimestamp = authorTimestampSplit[1];
-                            currentTimestamp = parseInt(currentStringTimestamp, 10);
                             if (!authStats[currentAuthor]) {
                                 authStats[currentAuthor] = {
                                     loc: 0,
@@ -100,16 +98,41 @@ function getAuthStats(repoPath) {
                             authStats[currentAuthor].files++;
                         }
                     }
-                    _a.label = 2;
+                    totalCommits = 0;
+                    totalCtimes = 0;
+                    totalFiles = 0;
+                    totalLoc = 0;
+                    authorsArray = [];
+                    for (_a = 0, _b = Object.entries(authStats); _a < _b.length; _a++) {
+                        _c = _b[_a], author = _c[0], stats = _c[1];
+                        totalCommits += stats.commits;
+                        totalCtimes += stats.ctimes;
+                        totalFiles += stats.files;
+                        totalLoc += stats.loc;
+                        authorsArray.push({
+                            name: author,
+                            loc: stats.loc,
+                            coms: stats.commits,
+                            fils: stats.files,
+                        });
+                    }
+                    finalOutput = {
+                        totalCommits: totalCommits,
+                        totalCtimes: totalCtimes,
+                        totalFiles: totalFiles,
+                        totalLoc: totalLoc,
+                        Authors: authorsArray,
+                    };
+                    _d.label = 2;
                 case 2:
-                    _a.trys.push([2, 4, , 5]);
-                    return [4 /*yield*/, writeFileAsync("output.json", JSON.stringify(authStats, null, 2))];
+                    _d.trys.push([2, 4, , 5]);
+                    return [4 /*yield*/, writeFileAsync("output.json", JSON.stringify(finalOutput, null, 2))];
                 case 3:
-                    _a.sent();
+                    _d.sent();
                     console.log("Estadísticas escritas en 'output.json'.");
                     return [3 /*break*/, 5];
                 case 4:
-                    err_1 = _a.sent();
+                    err_1 = _d.sent();
                     console.error("Error al escribir el archivo:", err_1);
                     return [3 /*break*/, 5];
                 case 5: return [2 /*return*/];
