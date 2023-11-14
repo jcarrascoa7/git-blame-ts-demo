@@ -4,7 +4,7 @@ import * as fs from "fs";
 
 interface AuthorStats {
   loc: number;
-  files: number;
+  files: Set<string>;
   commits: number;
   ctimes: number;
 }
@@ -56,7 +56,7 @@ async function getAuthStats(repoPath: string): Promise<void> {
       if (!authStats[currentAuthor]) {
         authStats[currentAuthor] = {
           loc: 0,
-          files: 0,
+          files: new Set(),
           commits: 1,
           ctimes: 1,
         };
@@ -75,7 +75,7 @@ async function getAuthStats(repoPath: string): Promise<void> {
         loc = parseInt(insertions, 10) + parseInt(deletions, 10);
       }
       authStats[currentAuthor].loc += loc;
-      authStats[currentAuthor].files++;
+      authStats[currentAuthor].files.add(filename.trim());
     }
   }
 
@@ -89,14 +89,14 @@ async function getAuthStats(repoPath: string): Promise<void> {
   for (const [author, stats] of Object.entries(authStats)) {
     totalCommits += stats.commits;
     totalCtimes += stats.ctimes;
-    totalFiles += stats.files;
+    totalFiles += stats.files.size;
     totalLoc += stats.loc;
 
     authorsArray.push({
       name: author,
       loc: stats.loc,
       coms: stats.commits,
-      fils: stats.files,
+      fils: stats.files.size,
     });
   }
 
