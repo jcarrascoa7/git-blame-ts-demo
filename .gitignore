@@ -130,5 +130,5 @@ dist
 .pnp.*
 
 # output
-output.json
-index.js
+src/interfaces
+src/index.js
