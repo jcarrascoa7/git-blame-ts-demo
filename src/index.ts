@@ -1,36 +1,19 @@
 import { promisify } from "util";
+import { AuthorStats } from "./interfaces/authorStats";
 import { exec } from "child_process";
-import * as fs from "fs";
+//import * as fs from "fs";
+import { OpenAI } from "openai";
+import dotenv from "dotenv";
 
-interface AuthorStats {
-  loc: number;
-  files: Set<string>;
-  commits: number;
-  ctimes: number;
-}
+dotenv.config();
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const repoPath =
   "/mnt/c/Users/carra/Desktop/PUC/Magister/EVILAB/Repositorios/2021-2-S3-Grupo3-Backend";
 
 const execAsync = promisify(exec);
-const writeFileAsync = promisify(fs.writeFile);
-
-function hours(
-  dates: number[],
-  maxCommitDiffInSec: number = 120 * 60,
-  firstCommitAdditionInMinutes: number = 120
-): number {
-  dates.sort((a, b) => a - b);
-
-  const diffInSec = dates
-    .slice(1)
-    .map((current, index) => current - dates[index]);
-
-  const filteredDiffs = diffInSec.filter((diff) => diff < maxCommitDiffInSec);
-  const res = filteredDiffs.reduce((acc, diff) => acc + diff, 0);
-
-  return (res / 60 + firstCommitAdditionInMinutes) / 60;
-}
+//const writeFileAsync = promisify(fs.writeFile);
 
 const calculateDistribution = (
   authorStats: AuthorStats,
@@ -43,6 +26,29 @@ const calculateDistribution = (
   const filsPercent = ((authorStats.files.size / totalFiles) * 100).toFixed(1);
   return `${locPercent}/${comsPercent}/${filsPercent}`;
 };
+
+async function getGPT4Insights(data: any) {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "Eres un asistente de profesor especializado en la evaluación de estudiantes en proyectos de software. Recibirás archivos JSON con las estadísticas de los distintos autores de un repositorio en GitHub y deberás extraer conclusiones importantes acerca del trabajo de cada uno en el proyecto.",
+        },
+        {
+          role: "user",
+          content: data,
+        },
+      ],
+      model: "gpt-4-1106-preview",
+    });
+    console.log(completion.choices[0].message.content);
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
 
 async function getAuthStats(repoPath: string): Promise<void> {
   const gitCmd = `git -C ${repoPath}`;
@@ -128,12 +134,18 @@ async function getAuthStats(repoPath: string): Promise<void> {
     totalLoc,
     Authors: authorsArray,
   };
+  // try {
+  //   await writeFileAsync("output.json", JSON.stringify(finalOutput, null, 2));
+  //   console.log("Estadísticas escritas en 'output.json'.");
+  // } catch (err) {
+  //   console.error("Error al escribir el archivo:", err);
+  // }
 
   try {
-    await writeFileAsync("output.json", JSON.stringify(finalOutput, null, 2));
-    console.log("Estadísticas escritas en 'output.json'.");
+    const data = JSON.stringify(finalOutput, null, 2);
+    await getGPT4Insights(data);
   } catch (err) {
-    console.error("Error al escribir el archivo:", err);
+    console.error("Error al obtener insights:", err);
   }
 }
 
