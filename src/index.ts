@@ -4,7 +4,7 @@ import * as fs from "fs";
 
 interface AuthorStats {
   loc: number;
-  files: number;
+  files: Set<string>;
   commits: number;
   ctimes: number;
 }
@@ -32,6 +32,18 @@ function hours(
   return (res / 60 + firstCommitAdditionInMinutes) / 60;
 }
 
+const calculateDistribution = (
+  authorStats: AuthorStats,
+  totalLoc: number,
+  totalCommits: number,
+  totalFiles: number
+) => {
+  const locPercent = ((authorStats.loc / totalLoc) * 100).toFixed(1);
+  const comsPercent = ((authorStats.commits / totalCommits) * 100).toFixed(1);
+  const filsPercent = ((authorStats.files.size / totalFiles) * 100).toFixed(1);
+  return `${locPercent}/${comsPercent}/${filsPercent}`;
+};
+
 async function getAuthStats(repoPath: string): Promise<void> {
   const gitCmd = `git -C ${repoPath}`;
   const authStats: { [author: string]: AuthorStats } = {};
@@ -56,13 +68,12 @@ async function getAuthStats(repoPath: string): Promise<void> {
       if (!authStats[currentAuthor]) {
         authStats[currentAuthor] = {
           loc: 0,
-          files: 0,
+          files: new Set(),
           commits: 1,
           ctimes: 1,
         };
       } else {
         authStats[currentAuthor].commits++;
-        authStats[currentAuthor].ctimes++;
       }
     }
 
@@ -75,7 +86,8 @@ async function getAuthStats(repoPath: string): Promise<void> {
         loc = parseInt(insertions, 10) + parseInt(deletions, 10);
       }
       authStats[currentAuthor].loc += loc;
-      authStats[currentAuthor].files++;
+      authStats[currentAuthor].ctimes++;
+      authStats[currentAuthor].files.add(filename.trim());
     }
   }
 
@@ -84,19 +96,28 @@ async function getAuthStats(repoPath: string): Promise<void> {
   let totalFiles = 0;
   let totalLoc = 0;
 
-  const authorsArray = [];
-
   for (const [author, stats] of Object.entries(authStats)) {
     totalCommits += stats.commits;
     totalCtimes += stats.ctimes;
-    totalFiles += stats.files;
+    totalFiles += stats.files.size;
     totalLoc += stats.loc;
+  }
 
+  const authorsArray = [];
+
+  for (const [author, stats] of Object.entries(authStats)) {
+    const distribution = calculateDistribution(
+      stats,
+      totalLoc,
+      totalCommits,
+      totalFiles
+    );
     authorsArray.push({
       name: author,
       loc: stats.loc,
       coms: stats.commits,
-      fils: stats.files,
+      fils: stats.files.size,
+      distribution: distribution,
     });
   }
 
